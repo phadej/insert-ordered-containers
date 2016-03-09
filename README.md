@@ -1,3 +1,3 @@
 # insert-ordered-containers
 
-Associative containers retating insertion order for traversals.
+Associative containers retaining insertion order for traversals.
