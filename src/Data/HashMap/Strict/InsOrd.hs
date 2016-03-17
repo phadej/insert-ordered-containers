@@ -87,13 +87,12 @@ import qualified Data.Foldable                   as F
 import           Data.Functor.Apply              (Apply (..))
 import           Data.Functor.Bind               (Bind (..))
 import           Data.Hashable                   (Hashable (..))
-import           Data.List                       (sortBy, nub)
+import           Data.List                       (nub, sortBy)
 import           Data.Maybe                      (fromMaybe)
 import           Data.Ord                        (comparing)
 import           Data.Semigroup                  (Semigroup (..))
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
-import qualified GHC.Exts                        as Exts
 import           Text.ParserCombinators.ReadPrec (prec)
 import           Text.Read                       (Lexeme (..), Read (..), lexP,
                                                   parens, readListPrecDefault,
@@ -107,6 +106,10 @@ import Control.Monad.Trans.State.Strict (State, runState, state)
 
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+
+#if MIN_VERSION_base(4,7,0)
+import qualified GHC.Exts as Exts
+#endif
 
 -------------------------------------------------------------------------------
 -- Strict Pair Int a
@@ -199,10 +202,12 @@ instance (Hashable k, Hashable v) => Hashable (InsOrdHashMap k v) where
     hashWithSalt salt (InsOrdHashMap _ m) =
         hashWithSalt salt m
 
+#if MIN_VERSION_base(4,7,0)
 instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
     type Item (InsOrdHashMap k v) = (k, v)
     fromList = fromList
     toList   = toList
+#endif
 
 -------------------------------------------------------------------------------
 -- Aeson
@@ -210,7 +215,7 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
 
 class ToJSONKey a where
     toJSONKey :: a -> Text
-    
+
     -- | Default implementations picks first element, if exists;
     -- otherwise evaluates to @""@.
     toJSONKeyList :: [a] -> Text
