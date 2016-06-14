@@ -1,6 +1,32 @@
 resolver: lts-2.22
 packages:
 - '.'
+- location:
+    git: git@github.com:bos/aeson.git
+    commit: 68bb89f0c58796fdd6d2c136c9ea3ef9b70b8685
+  extra-dep: true
 extra-deps:
+- aeson-1.0.0.0
+- attoparsec-0.13.0.2
+- base-compat-0.9.1
+- base-orphans-0.5.4
+- bifunctors-5.2
+- fail-4.9.0.0
+- free-4.12.4
+- generic-deriving-1.10.4.1
+- hashable-1.2.4.0
+- hashable-time-0.2
+- kan-extensions-5.0.1
+- lens-4.14
+- primitive-0.6.1.0
+- profunctors-5.2
+- quickcheck-instances-0.3.12
+- reflection-2.1.2
+- semigroupoids-5.0.1
+- tagged-0.8.4
+- time-locale-compat-0.1.1.2
 - unordered-containers-0.2.7.0
-flags: {}
+- vector-0.11.0.0
+flags:
+  hashable-time:
+    old-locale: true

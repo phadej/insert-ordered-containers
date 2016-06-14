@@ -62,9 +62,6 @@ module Data.HashMap.Strict.InsOrd (
     fromList,
     toHashMap,
     fromHashMap,
-    -- * Aeson extras
-    FromJSONKey(..),
-    ToJSONKey(..),
     -- * Lenses
     hashMap,
     unorderedTraversal,
@@ -81,7 +78,7 @@ import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import           Control.Arrow                   (first, second)
 import           Data.Aeson
-import qualified Data.Aeson.Types                as Aeson
+import qualified Data.Aeson.Encoding             as E
 import           Data.Data                       (Data, Typeable)
 import qualified Data.Foldable                   as F
 import           Data.Functor.Apply              (Apply (..))
@@ -91,12 +88,9 @@ import           Data.List                       (nub, sortBy)
 import           Data.Maybe                      (fromMaybe)
 import           Data.Ord                        (comparing)
 import           Data.Semigroup                  (Semigroup (..))
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
 import           Text.ParserCombinators.ReadPrec (prec)
 import           Text.Read                       (Lexeme (..), Read (..), lexP,
-                                                  parens, readListPrecDefault,
-                                                  readMaybe)
+                                                  parens, readListPrecDefault)
 
 import Control.Lens                     (At (..), FoldableWithIndex,
                                          FunctorWithIndex, Index, Iso, IxValue,
@@ -213,69 +207,26 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
 -- Aeson
 -------------------------------------------------------------------------------
 
-class ToJSONKey a where
-    toJSONKey :: a -> Text
+instance (ToJSONKey k) => ToJSON1 (InsOrdHashMap k) where
+    liftToJSON t _ = case toJSONKey :: ToJSONKeyFunction k of
+      ToJSONKeyText f _ -> object . fmap (\(k, v) -> (f k, t v)) . toList
+      ToJSONKeyValue f _ -> toJSON . fmap (\(k,v) -> toJSON (f k, t v)) . toList
 
-    -- | Default implementations picks first element, if exists;
-    -- otherwise evaluates to @""@.
-    toJSONKeyList :: [a] -> Text
-    toJSONKeyList []    = T.empty
-    toJSONKeyList (x:_) = toJSONKey x
-
-instance ToJSONKey Char where
-    toJSONKey c = T.singleton c
-    toJSONKeyList = T.pack
-
-instance ToJSONKey Int where
-    toJSONKey = T.pack . show
-
-instance ToJSONKey a => ToJSONKey [a] where
-    toJSONKey = toJSONKeyList
-
-instance ToJSONKey Text where
-    toJSONKey = id
+    liftToEncoding t _ = case toJSONKey :: ToJSONKeyFunction k of
+      ToJSONKeyText _ f ->  E.dict f t foldrWithKey
+      ToJSONKeyValue _ f -> E.list (liftToEncoding2 f (E.list f) t (E.list t)) . toList
 
 instance (ToJSONKey k, ToJSON v) => ToJSON (InsOrdHashMap k v) where
-    toJSON = object . fmap f . toList
-      where
-        f (k, v) = toJSONKey k .= v
-
-#if MIN_VERSION_aeson(0,10,0)
-    toEncoding = pairs . mconcat . fmap f . toList
-      where
-        f (k, v) = toJSONKey k .= v
-#endif
+    toJSON = toJSON1
+    toEncoding = toEncoding1
 
 -------------------------------------------------------------------------------
 
--- | See https://github.com/bos/aeson/pull/341
-class FromJSONKey a where
-    parseJSONKey :: Text -> Aeson.Parser a
-
-    -- | Default implementation parses into singleton list. 'String' @:(@
-    parseJSONKeyList :: Text -> Aeson.Parser [a]
-    parseJSONKeyList t = (:[]) <$> parseJSONKey t
-
-instance FromJSONKey Char where
-    parseJSONKey t = case T.uncons t of
-      Just (c, r) | T.null r -> pure c
-      _                      -> fail $ "Non-singleton json key for Char: " ++ T.unpack t
-    parseJSONKeyList = pure . T.unpack
-
-instance FromJSONKey Int where
-    parseJSONKey t = maybe (fail "Cannot parse Int key") return $
-        readMaybe $ T.unpack t
-
-instance FromJSONKey a => FromJSONKey [a] where
-    parseJSONKey = parseJSONKeyList
-
-instance FromJSONKey Text where
-    parseJSONKey = pure
+instance (Eq k, Hashable k, FromJSONKey k) => FromJSON1 (InsOrdHashMap k) where
+    liftParseJSON p pl v = fromList . HashMap.toList <$> liftParseJSON p pl v
 
 instance (Eq k, Hashable k, FromJSONKey k, FromJSON v) => FromJSON (InsOrdHashMap k v) where
-    parseJSON = withObject "OrdHasMap k v" $ \obj ->
-        fmap fromList $ traverse f $ HashMap.toList obj
-      where f (k, v) = (,) <$> parseJSONKey k <*> parseJSON v
+    parseJSON = parseJSON1
 
 -------------------------------------------------------------------------------
 -- Lens
