@@ -14,3 +14,4 @@ matrix:
 branches:
   only:
     - master
+    - release-0.1
