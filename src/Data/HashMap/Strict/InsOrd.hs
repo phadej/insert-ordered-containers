@@ -360,8 +360,8 @@ unionWith
     :: (Eq k, Hashable k)
     => (v -> v -> v)
     -> InsOrdHashMap k v -> InsOrdHashMap k v -> InsOrdHashMap k v
-unionWith f (InsOrdHashMap i a) (InsOrdHashMap j b) =
-    InsOrdHashMap (i + j) $ HashMap.unionWith f' a b'
+unionWith f (InsOrdHashMap i a) (InsOrdHashMap _ b) =
+    fromHashMapP $ HashMap.unionWith f' a b'
   where
     b' = fmap (incPK i) b
     f' (P ii x) (P _ y) = P ii (f x y)
@@ -598,6 +598,16 @@ toHashMap (InsOrdHashMap _ m) = fmap getPV m
 -------------------------------------------------------------------------------
 -- Internal
 -------------------------------------------------------------------------------
+
+-- TODO: more efficient way is to do two traversals
+-- - collect the indexes
+-- - pack the indexes (Map old new)
+-- - traverse second time, changing the indexes
+fromHashMapP :: HashMap k (P v) -> InsOrdHashMap k v
+fromHashMapP = mk . flip runState 0 . retractSortedAp . traverse f
+  where
+    mk (m, i) = InsOrdHashMap i m
+    f (P i v) = liftSortedAp i (newP v)
 
 -- | Test if the internal map structure is valid.
 valid :: InsOrdHashMap k v -> Bool

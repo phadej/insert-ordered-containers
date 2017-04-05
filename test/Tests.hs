@@ -32,7 +32,8 @@ main = defaultMain $ testGroup "tests"
         , testProperty "show . read = id" showReadRoundtrip
         ]
     , testGroup "Regressions"
-        [ testProperty "issue 12 Foldable" $ issue12a
+        [ testProperty "issue 10: union overflow" $ issue10
+        , testProperty "issue 12 Foldable" $ issue12a
         , testProperty "issue 12 Traversable" $ issue12b
         , testProperty "issue 12 FoldableWithIndex ^.." $ issue12c
         , testProperty "issue 12 FoldableWithIndex ^@.." $ issue12d
@@ -176,3 +177,12 @@ issue12d = (m ^@.. ifolded) === (zip "helo" "wold")
   where
     m :: InsOrd.InsOrdHashMap Char Char
     m = InsOrd.fromList  (zip "hello" "world")
+
+
+issue10 :: Property
+issue10 = (p ^.. folded) === "wold!" .&&. property (InsOrd.valid p)
+  where
+    m, n, p :: InsOrd.InsOrdHashMap Char Char
+    m = InsOrd.fromList  (zip "hello" "world")
+    n = iterate (\x -> InsOrd.union x x) m !! 64
+    p = InsOrd.insert '!' '!' n
