@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveTraversable     #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE Trustworthy           #-}
@@ -39,6 +40,9 @@ module Data.HashMap.Strict.InsOrd (
     traverseKeys,
     mapWithKey,
     traverseWithKey,
+    -- ** Unordered
+    unorderedTraverse,
+    unorderedTraverseWithKey,
     -- * Difference and intersection
     difference,
     intersection,
@@ -49,6 +53,10 @@ module Data.HashMap.Strict.InsOrd (
     foldlWithKey',
     foldr,
     foldrWithKey,
+    foldMapWithKey,
+    -- ** Unordered
+    unorderedFoldMap,
+    unorderedFoldMapWithKey,
     -- * Filter
     filter,
     filterWithKey,
@@ -76,6 +84,7 @@ module Data.HashMap.Strict.InsOrd (
 import Prelude        ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
+import           Control.Applicative             (Const (..), (<**>))
 import           Control.Arrow                   (first, second)
 import           Data.Aeson
 import qualified Data.Aeson.Encoding             as E
@@ -92,8 +101,8 @@ import           Text.ParserCombinators.ReadPrec (prec)
 import           Text.Read                       (Lexeme (..), Read (..), lexP,
                                                   parens, readListPrecDefault)
 
-import Control.Lens                     (At (..), FoldableWithIndex,
-                                         FunctorWithIndex, Index, Iso, IxValue,
+import Control.Lens                     (At (..), FoldableWithIndex (..),
+                                         FunctorWithIndex (..), Index, Iso, IxValue,
                                          Ixed (..), TraversableWithIndex (..),
                                          Traversal, iso, (<&>), _1, _2)
 import Control.Monad.Trans.State.Strict (State, runState, state)
@@ -180,8 +189,7 @@ instance Foldable (InsOrdHashMap k) where
 #endif
 
 instance Traversable (InsOrdHashMap k) where
-    traverse f (InsOrdHashMap i m) =
-        InsOrdHashMap i <$> (traverse . traverse) f m
+    traverse f m = traverseWithKey (\_ -> f) m
 
 instance (Eq k, Hashable k) => Apply (InsOrdHashMap k) where
     (<.>) = intersectionWith id
@@ -248,8 +256,10 @@ instance (Eq k, Hashable k) => At (InsOrdHashMap k a) where
       where mv = lookup k m
     {-# INLINABLE at #-}
 
-instance (Eq k, Hashable k) => FunctorWithIndex k (InsOrdHashMap k)
-instance (Eq k, Hashable k) => FoldableWithIndex k (InsOrdHashMap k)
+instance (Eq k, Hashable k) => FunctorWithIndex k (InsOrdHashMap k) where
+    imap = mapWithKey
+instance (Eq k, Hashable k) => FoldableWithIndex k (InsOrdHashMap k) where
+    ifoldMap = foldMapWithKey
 instance (Eq k, Hashable k) => TraversableWithIndex k (InsOrdHashMap k) where
     itraverse = traverseWithKey
 
@@ -400,8 +410,65 @@ mapWithKey f (InsOrdHashMap i m) =
   where
     f' k (P j x) = P j (f k x)
 
+foldMapWithKey :: Monoid m => (k -> a -> m) -> InsOrdHashMap k a -> m
+foldMapWithKey f = foldMap (uncurry f) . toList
+
 traverseWithKey :: Applicative f => (k -> a -> f b) -> InsOrdHashMap k a -> f (InsOrdHashMap k b)
-traverseWithKey f (InsOrdHashMap i m) =
+traverseWithKey f (InsOrdHashMap n m) = InsOrdHashMap n <$> retractSortedAp
+    (HashMap.traverseWithKey (\k (P i v) -> liftSortedAp i (P i <$> f k v)) m)
+
+-- Sort using insertion sort
+-- Hopefully it's fast enough for where we need it
+-- otherwise: https://gist.github.com/treeowl/9621f58d55fe0c4f9162be0e074b1b29
+-- http://elvishjerricco.github.io/2017/03/23/applicative-sorting.html also related
+
+-- Free applicative which re-orders effects
+-- Mostly from Edward Kmett's `free` package.
+data SortedAp f a where
+    Pure :: a -> SortedAp f a
+    SortedAp   :: !Int -> f a -> SortedAp f (a -> b) -> SortedAp f b
+
+instance Functor (SortedAp f) where
+    fmap f (Pure a)   = Pure (f a)
+    fmap f (SortedAp i x y)   = SortedAp i x ((f .) <$> y)
+
+instance Applicative (SortedAp f) where
+    pure = Pure
+    Pure f <*> y = fmap f y
+    -- This is different from real Ap
+    f <*> Pure y = fmap ($ y) f
+    f@(SortedAp i x y) <*> z@(SortedAp j u v)
+        | i < j     = SortedAp i x (flip <$> y <*> z)
+        | otherwise = SortedAp j u ((.) <$> f <*> v)
+
+liftSortedAp :: Int -> f a -> SortedAp f a
+liftSortedAp i x = SortedAp i x (Pure id)
+
+retractSortedAp :: Applicative f => SortedAp f a -> f a
+retractSortedAp (Pure x) = pure x
+retractSortedAp (SortedAp _ f x) = f <**> retractSortedAp x
+
+-------------------------------------------------------------------------------
+-- Unordered
+-------------------------------------------------------------------------------
+
+-- | More efficient than 'foldMap', when folding in insertion order is not important.
+unorderedFoldMap :: Monoid m => (a -> m) -> InsOrdHashMap k a -> m
+unorderedFoldMap f (InsOrdHashMap _ m) = foldMap (f . getPV) m
+
+-- | More efficient than 'foldMapWithKey', when folding in insertion order is not important.
+unorderedFoldMapWithKey :: Monoid m => (k -> a -> m) -> InsOrdHashMap k a -> m
+unorderedFoldMapWithKey f m =
+    getConst (unorderedTraverseWithKey (\k a -> Const (f k a)) m)
+
+-- | More efficient than 'traverse', when traversing in insertion order is not important.
+unorderedTraverse :: Applicative f => (a -> f b) -> InsOrdHashMap k a -> f (InsOrdHashMap k b)
+unorderedTraverse f (InsOrdHashMap i m) =
+    InsOrdHashMap i <$> (traverse . traverse) f m
+
+-- | More efficient than `traverseWithKey`, when traversing in insertion order is not important.
+unorderedTraverseWithKey :: Applicative f => (k -> a -> f b) -> InsOrdHashMap k a -> f (InsOrdHashMap k b)
+unorderedTraverseWithKey f (InsOrdHashMap i m) =
     InsOrdHashMap i <$> HashMap.traverseWithKey f' m
   where
     f' k (P j x) = P j <$> f k x

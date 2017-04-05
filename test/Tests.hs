@@ -3,10 +3,12 @@ module Main (main) where
 import Prelude        ()
 import Prelude.Compat
 
+import Control.Lens   (folded, ifolded, (^..), (^@..))
 import Data.Function  (on)
 import Data.Hashable  (Hashable (..))
 import Data.List      (nubBy)
 import Data.Semigroup ((<>))
+import Data.Traversable (foldMapDefault)
 import Data.Word      (Word8)
 import Text.Read      (readMaybe)
 
@@ -19,14 +21,22 @@ import Test.Tasty
 import Test.Tasty.QuickCheck
 
 main :: IO ()
-main = defaultMain $ testGroup "Properties" $
-    [ testProperty "toList . fromList ~= id" $ toListFromList
-    , testProperty "toList distributes over mappend" $ toListMappendDistribute
-    , testProperty "behaves like HashMap" $ operationModel
-    , testProperty "valid" $ validProperty
-    , testProperty "Hashable agree" $ hashableProperty
-    , testProperty "aeson roundtrip" $ aesonRoundtrip
-    , testProperty "show . read = id" showReadRoundtrip
+main = defaultMain $ testGroup "tests"
+    [ testGroup "Properties" $
+        [ testProperty "toList . fromList ~= id" $ toListFromList
+        , testProperty "toList distributes over mappend" $ toListMappendDistribute
+        , testProperty "behaves like HashMap" $ operationModel
+        , testProperty "valid" $ validProperty
+        , testProperty "Hashable agree" $ hashableProperty
+        , testProperty "aeson roundtrip" $ aesonRoundtrip
+        , testProperty "show . read = id" showReadRoundtrip
+        ]
+    , testGroup "Regressions"
+        [ testProperty "issue 12 Foldable" $ issue12a
+        , testProperty "issue 12 Traversable" $ issue12b
+        , testProperty "issue 12 FoldableWithIndex ^.." $ issue12c
+        , testProperty "issue 12 FoldableWithIndex ^@.." $ issue12d
+        ]
     ]
 
 toListFromList :: [(Int, Int)] -> Property
@@ -138,3 +148,31 @@ showReadRoundtrip op = rhs === lhs
     iom = evalOpInsOrd op
     rhs = Just iom
     lhs = readMaybe $ show iom
+
+-------------------------------------------------------------------------------
+-- Regressions
+-------------------------------------------------------------------------------
+
+issue12a :: Property
+issue12a = (m ^.. folded) === "wold"
+  where
+    m :: InsOrd.InsOrdHashMap Char Char
+    m = InsOrd.fromList  (zip "hello" "world")
+
+issue12b :: Property
+issue12b = foldMapDefault (:[]) m === "wold"
+  where
+    m :: InsOrd.InsOrdHashMap Char Char
+    m = InsOrd.fromList  (zip "hello" "world")
+
+issue12c :: Property
+issue12c = (m ^.. ifolded) === "wold"
+  where
+    m :: InsOrd.InsOrdHashMap Char Char
+    m = InsOrd.fromList  (zip "hello" "world")
+
+issue12d :: Property
+issue12d = (m ^@.. ifolded) === (zip "helo" "wold")
+  where
+    m :: InsOrd.InsOrdHashMap Char Char
+    m = InsOrd.fromList  (zip "hello" "world")
