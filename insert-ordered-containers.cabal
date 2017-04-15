@@ -1,5 +1,5 @@
 name:           insert-ordered-containers
-version:        0.2.0.0
+version:        0.2.1.0
 x-revision:     4
 synopsis:       Associative containers retating insertion order for traversals.
 description:    Associative containers retating insertion order for traversals.
