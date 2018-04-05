@@ -114,6 +114,10 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified GHC.Exts as Exts
 #endif
 
+#if MIN_VERSION_base(4,9,0)
+import Data.Functor.Classes
+#endif
+
 -------------------------------------------------------------------------------
 -- Strict Pair Int a
 -------------------------------------------------------------------------------
@@ -136,6 +140,9 @@ incPK i (P j x) = P (i + j) x
 instance Eq a => Eq (P a) where
     P _ a == P _ b = a == b
 
+instance Ord a => Ord (P a) where
+    compare (P _ a) (P _ b) = compare a b
+
 instance Show a => Show (P a) where
     showsPrec d (P _ x) = showsPrec d x
 
@@ -156,6 +163,39 @@ data InsOrdHashMap k v = InsOrdHashMap
 
 instance (Eq k, Eq v) => Eq (InsOrdHashMap k v) where
     InsOrdHashMap _ a == InsOrdHashMap _ b = a == b
+
+instance (Ord k, Ord v) => Ord (InsOrdHashMap k v) where
+    compare (InsOrdHashMap _ a) (InsOrdHashMap _ b) = compare a b
+
+#if MIN_VERSION_base(4,9,0)
+liftP :: (t1 -> t2 -> t3) -> P t1 -> P t2 -> t3
+liftP f pa pb = f (getPV pa) (getPV pb)
+
+instance Eq k => Eq1 (InsOrdHashMap k) where
+    liftEq f (InsOrdHashMap _ a) (InsOrdHashMap _ b) = liftEq (liftP f) a b
+
+instance Eq2 InsOrdHashMap where
+    liftEq2 f g (InsOrdHashMap _ a) (InsOrdHashMap _ b) =
+      liftEq2 f (liftP g) a b
+
+instance Ord k => Ord1 (InsOrdHashMap k) where
+    liftCompare f (InsOrdHashMap _ a) (InsOrdHashMap _ b) =
+      liftCompare (liftP f) a b
+
+instance Ord2 InsOrdHashMap where
+    liftCompare2 f g (InsOrdHashMap _ a) (InsOrdHashMap _ b) =
+      liftCompare2 f (liftP g) a b
+
+instance Show2 InsOrdHashMap where
+    liftShowsPrec2 spk slk spv slv d m =
+        showsUnaryWith (liftShowsPrec sp sl) "fromList" d (toList m)
+      where
+        sp = liftShowsPrec2 spk slk spv slv
+        sl = liftShowList2 spk slk spv slv
+
+instance Show k => Show1 (InsOrdHashMap k) where
+    liftShowsPrec = liftShowsPrec2 showsPrec showList
+#endif
 
 instance (Show k, Show v) => Show (InsOrdHashMap k v) where
     showsPrec d m = showParen (d > 10) $
