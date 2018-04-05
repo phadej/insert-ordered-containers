@@ -185,6 +185,16 @@ instance Ord k => Ord1 (InsOrdHashMap k) where
 instance Ord2 InsOrdHashMap where
     liftCompare2 f g (InsOrdHashMap _ a) (InsOrdHashMap _ b) =
       liftCompare2 f (liftP g) a b
+
+instance Show2 InsOrdHashMap where
+    liftShowsPrec2 spk slk spv slv d m =
+        showsUnaryWith (liftShowsPrec sp sl) "fromList" d (toList m)
+      where
+        sp = liftShowsPrec2 spk slk spv slv
+        sl = liftShowList2 spk slk spv slv
+
+instance Show k => Show1 (InsOrdHashMap k) where
+    liftShowsPrec = liftShowsPrec2 showsPrec showList
 #endif
 
 instance (Show k, Show v) => Show (InsOrdHashMap k v) where
