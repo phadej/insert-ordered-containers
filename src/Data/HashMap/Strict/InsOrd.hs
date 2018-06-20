@@ -70,9 +70,11 @@ module Data.HashMap.Strict.InsOrd (
     fromList,
     toHashMap,
     fromHashMap,
+#ifndef NO_LENS_INSTANCES
     -- * Lenses
     hashMap,
     unorderedTraversal,
+#endif
     -- * Debugging
     valid,
     ) where
@@ -101,10 +103,14 @@ import           Text.ParserCombinators.ReadPrec (prec)
 import           Text.Read                       (Lexeme (..), Read (..), lexP,
                                                   parens, readListPrecDefault)
 
+#ifndef NO_LENS_INSTANCES
 import Control.Lens                     (At (..), FoldableWithIndex (..),
                                          FunctorWithIndex (..), Index, Iso, IxValue,
                                          Ixed (..), TraversableWithIndex (..),
                                          Traversal, iso, (<&>), _1, _2)
+#else
+import Lens.Micro (_1, _2)
+#endif
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
 import           Data.HashMap.Strict (HashMap)
@@ -240,6 +246,7 @@ instance (Eq k, Hashable k, FromJSONKey k, FromJSON v) => FromJSON (InsOrdHashMa
 -- Lens
 -------------------------------------------------------------------------------
 
+#ifndef NO_LENS_INSTANCES
 type instance Index (InsOrdHashMap k v) = k
 type instance IxValue (InsOrdHashMap k v) = v
 
@@ -269,6 +276,7 @@ hashMap = iso toHashMap fromHashMap
 
 unorderedTraversal :: Traversal (InsOrdHashMap k a) (InsOrdHashMap k b) a b
 unorderedTraversal = hashMap . traverse
+#endif
 
 -------------------------------------------------------------------------------
 -- Construction
