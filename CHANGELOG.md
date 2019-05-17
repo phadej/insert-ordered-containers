@@ -1,3 +1,6 @@
+- 0.2.2
+    - Add `Data.HashSet.InsOrd`
+
 - 0.2.1.0
     - Fix `Traversable`, `TraversableWithIndex`, `FoldableWithIndex` to traverse
       in insertion order
