@@ -46,16 +46,16 @@ module Data.HashSet.InsOrd (
 import Prelude ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
-import           Control.Arrow                   (first)
-import           Data.Aeson
-import           Data.Data                       (Data, Typeable)
-import           Data.Hashable                   (Hashable (..))
-import           Data.List                       (nub, sortBy)
-import           Data.Ord                        (comparing)
-import           Data.Semigroup                  (Semigroup (..))
-import           Text.ParserCombinators.ReadPrec (prec)
-import           Text.Read
-                 (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
+import Control.Arrow                   (first)
+import Data.Aeson
+import Data.Data                       (Data, Typeable)
+import Data.Hashable                   (Hashable (..))
+import Data.List                       (nub, sortBy)
+import Data.Ord                        (comparing)
+import Data.Semigroup                  (Semigroup (..))
+import Text.ParserCombinators.ReadPrec (prec)
+import Text.Read
+       (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
 
 import Control.Lens
        (At (..), Contains (..), Index, Iso', IxValue, Ixed (..), iso, (<&>))

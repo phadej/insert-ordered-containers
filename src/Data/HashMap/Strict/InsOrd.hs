@@ -81,7 +81,7 @@ module Data.HashMap.Strict.InsOrd (
 #define MIN_VERSION_aeson(x,y,z) 0
 #endif
 
-import Prelude        ()
+import Prelude ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import           Control.Applicative             (Const (..))
@@ -98,13 +98,13 @@ import           Data.Maybe                      (fromMaybe)
 import           Data.Ord                        (comparing)
 import           Data.Semigroup                  (Semigroup (..))
 import           Text.ParserCombinators.ReadPrec (prec)
-import           Text.Read                       (Lexeme (..), Read (..), lexP,
-                                                  parens, readListPrecDefault)
+import           Text.Read
+                 (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
 
-import Control.Lens                     (At (..), FoldableWithIndex (..),
-                                         FunctorWithIndex (..), Index, Iso, IxValue,
-                                         Ixed (..), TraversableWithIndex (..),
-                                         Traversal, iso, (<&>), _1, _2)
+import Control.Lens
+       (At (..), FoldableWithIndex (..), FunctorWithIndex (..), Index, Iso,
+       IxValue, Ixed (..), TraversableWithIndex (..), Traversal, iso, (<&>),
+       _1, _2)
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
 import           Data.HashMap.Strict (HashMap)
