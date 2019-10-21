@@ -19,10 +19,7 @@ license-file:       LICENSE
 build-type:         Simple
 cabal-version:      >=1.10
 tested-with:
-  GHC ==7.6.3
-   || ==7.8.4
-   || ==7.10.3
-   || ==8.0.1
+  GHC ==8.0.2
    || ==8.2.2
    || ==8.4.4
    || ==8.6.5
@@ -46,6 +43,8 @@ library
     , base-compat           >=0.10.5  && <0.12
     , hashable              >=1.2.6.1 && <1.4
     , lens                  >=4.17    && <4.19
+    , optics-core           >=0.2     && <0.3
+    , optics-extra          >=0.2     && <0.3
     , semigroupoids         >=5.3.2   && <5.4
     , semigroups            >=0.18.5  && <0.20
     , text                  >=1.2.3.0 && <1.3

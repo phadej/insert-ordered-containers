@@ -107,6 +107,10 @@ import Control.Lens
        _1, _2)
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
+import qualified Control.Lens as Lens
+import qualified Optics.At    as Optics
+import qualified Optics.Core  as Optics
+
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 
@@ -246,10 +250,20 @@ type instance Index (InsOrdHashMap k v) = k
 type instance IxValue (InsOrdHashMap k v) = v
 
 instance (Eq k, Hashable k) => Ixed (InsOrdHashMap k v) where
-    ix k f m = case lookup k m of
-         Just v  -> f v <&> \v' -> insert k v' m
-         Nothing -> pure m
+    ix k f m = ixImpl k pure f m
     {-# INLINABLE ix #-}
+
+ixImpl
+  :: (Eq k, Hashable k, Functor f)
+  => k
+  -> (InsOrdHashMap k v -> f (InsOrdHashMap k v))
+  -> (v -> f v)
+  -> InsOrdHashMap k v
+  -> f (InsOrdHashMap k v)
+ixImpl k point f m = case lookup k m of
+    Just v  -> f v <&> \v' -> insert k v' m
+    Nothing -> point m
+{-# INLINE ixImpl #-}
 
 instance (Eq k, Hashable k) => At (InsOrdHashMap k a) where
     at k f m = f mv <&> \r -> case r of
@@ -271,6 +285,28 @@ hashMap = iso toHashMap fromHashMap
 
 unorderedTraversal :: Traversal (InsOrdHashMap k a) (InsOrdHashMap k b) a b
 unorderedTraversal = hashMap . traverse
+
+-------------------------------------------------------------------------------
+-- Optics
+-------------------------------------------------------------------------------
+
+type instance Optics.Index (InsOrdHashMap k v) = k
+type instance Optics.IxValue (InsOrdHashMap k v) = v
+
+instance (Eq k, Hashable k) => Optics.Ixed (InsOrdHashMap k v) where
+    ix k = Optics.atraversalVL $ \point f m -> ixImpl k point f m
+    {-# INLINE ix #-}
+
+instance (Eq k, Hashable k) => Optics.At (InsOrdHashMap k a) where
+    at k = Optics.lensVL $ \f m -> Lens.at k f m
+    {-# INLINE at #-}
+
+instance (Eq k, Hashable k) => Optics.FunctorWithIndex k (InsOrdHashMap k) where
+    imap = mapWithKey
+instance (Eq k, Hashable k) => Optics.FoldableWithIndex k (InsOrdHashMap k) where
+    ifoldMap = foldMapWithKey
+instance (Eq k, Hashable k) => Optics.TraversableWithIndex k (InsOrdHashMap k) where
+    itraverse = traverseWithKey
 
 -------------------------------------------------------------------------------
 -- Construction
