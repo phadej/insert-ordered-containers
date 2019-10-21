@@ -61,6 +61,10 @@ import Control.Lens
        (At (..), Contains (..), Index, Iso', IxValue, Ixed (..), iso, (<&>))
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
+import qualified Control.Lens as Lens
+import qualified Optics.At    as Optics
+import qualified Optics.Core  as Optics
+
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.HashSet        (HashSet)
@@ -170,6 +174,26 @@ instance (Eq a, Hashable a) => Contains (InsOrdHashSet a) where
 -- | This is a slight lie, as roundtrip doesn't preserve ordering.
 hashSet :: Iso' (InsOrdHashSet a) (HashSet a)
 hashSet = iso toHashSet fromHashSet
+
+-------------------------------------------------------------------------------
+-- Optics
+-------------------------------------------------------------------------------
+
+type instance Optics.Index (InsOrdHashSet a) = a
+type instance Optics.IxValue (InsOrdHashSet a) = ()
+
+instance (Eq k, Hashable k) => Optics.Ixed (InsOrdHashSet k) where
+    ix k = Optics.atraversalVL $ \point f (InsOrdHashSet i m) ->
+      InsOrdHashSet i <$> Optics.toAtraversalVL (Optics.ix k) point (\j -> j <$ f ()) m
+    {-# INLINE ix #-}
+
+instance (Eq k, Hashable k) => Optics.At (InsOrdHashSet k) where
+    at k = Optics.lensVL $ \f m -> Lens.at k f m
+    {-# INLINE at #-}
+
+instance (Eq a, Hashable a) => Optics.Contains (InsOrdHashSet a) where
+    contains k = Optics.lensVL $ \f s -> Lens.contains k f s
+    {-# INLINE contains #-}
 
 -------------------------------------------------------------------------------
 -- Construction
