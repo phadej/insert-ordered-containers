@@ -77,10 +77,6 @@ module Data.HashMap.Strict.InsOrd (
     valid,
     ) where
 
-#ifndef MIN_VERSION_aeson
-#define MIN_VERSION_aeson(x,y,z) 0
-#endif
-
 import Prelude ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
@@ -114,9 +110,7 @@ import qualified Optics.Core  as Optics
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 
-#if MIN_VERSION_base(4,7,0)
 import qualified GHC.Exts as Exts
-#endif
 
 import Data.HashMap.InsOrd.Internal
 
@@ -188,11 +182,9 @@ instance Foldable (InsOrdHashMap k) where
     -- length = length . getInsOrdHashMap
     foldMap f = foldMap (f . snd) . toList
 
-#if MIN_VERSION_base(4,8,0)
     null = null
     toList = elems
     length = size
-#endif
 
 instance Traversable (InsOrdHashMap k) where
     traverse f m = traverseWithKey (\_ -> f) m
@@ -210,12 +202,10 @@ instance (Hashable k, Hashable v) => Hashable (InsOrdHashMap k v) where
     hashWithSalt salt (InsOrdHashMap _ m) =
         hashWithSalt salt m
 
-#if MIN_VERSION_base(4,7,0)
 instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
     type Item (InsOrdHashMap k v) = (k, v)
     fromList = fromList
     toList   = toList
-#endif
 
 -------------------------------------------------------------------------------
 -- Aeson
