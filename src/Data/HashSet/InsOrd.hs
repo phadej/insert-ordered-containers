@@ -70,13 +70,8 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.HashSet        (HashSet)
 import qualified Data.HashSet        as HashSet
 
-#if MIN_VERSION_base(4,7,0)
 import qualified GHC.Exts as Exts
-#endif
-
-#if MIN_VERSION_base(4,8,0)
 import qualified Data.Foldable
-#endif
 
 import Data.HashMap.InsOrd.Internal
 
@@ -119,23 +114,19 @@ instance Foldable InsOrdHashSet where
     -- length = length . getInsOrdHashSet
     foldMap f = foldMap f . toList
 
-#if MIN_VERSION_base(4,8,0)
     null = null
     toList = toList
     length = size
-#endif
 
 -- | @'hashWithSalt' salt . 'toHashSet' = 'hashWithSalt' salt@.
 instance Hashable k => Hashable (InsOrdHashSet k) where
     hashWithSalt salt (InsOrdHashSet _ m) =
         hashWithSalt salt m
 
-#if MIN_VERSION_base(4,7,0)
 instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashSet k) where
     type Item (InsOrdHashSet k) = k
     fromList = fromList
     toList   = toList
-#endif
 
 -------------------------------------------------------------------------------
 -- Aeson
