@@ -65,7 +65,7 @@ test-suite ins-ord-containers-tests
     , hashable
     , insert-ordered-containers
     , lens
-    , QuickCheck                 >=2.13.2   && <2.14
+    , QuickCheck                 >=2.13.2   && <2.15
     , semigroupoids
     , semigroups
     , tasty                      >=0.10.1.2 && <1.3
