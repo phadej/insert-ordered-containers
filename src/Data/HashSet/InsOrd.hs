@@ -70,8 +70,8 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.HashSet        (HashSet)
 import qualified Data.HashSet        as HashSet
 
-import qualified GHC.Exts as Exts
 import qualified Data.Foldable
+import qualified GHC.Exts      as Exts
 
 import Data.HashMap.InsOrd.Internal
 
@@ -175,7 +175,13 @@ type instance Optics.IxValue (InsOrdHashSet a) = ()
 
 instance (Eq k, Hashable k) => Optics.Ixed (InsOrdHashSet k) where
     ix k = Optics.atraversalVL $ \point f (InsOrdHashSet i m) ->
-      InsOrdHashSet i <$> Optics.toAtraversalVL (Optics.ix k) point (\j -> j <$ f ()) m
+      InsOrdHashSet i <$>
+#if MIN_VERSION_optics_core(0,3,0)
+          Optics.atraverseOf
+#else
+          Optics.toAtraversalVL
+#endif
+          (Optics.ix k) point (\j -> j <$ f ()) m
     {-# INLINE ix #-}
 
 instance (Eq k, Hashable k) => Optics.At (InsOrdHashSet k) where
