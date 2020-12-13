@@ -1,3 +1,7 @@
+- 0.2.4
+    - Add `indexed-traversable` instances
+    - lens-5 and optics-0.4 support
+
 - 0.2.3
     - Add support for indexed `optics`
     - Only support GHC-8.0+

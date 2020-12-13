@@ -86,21 +86,22 @@ import           Data.Aeson
 import qualified Data.Aeson.Encoding             as E
 import           Data.Data                       (Data, Typeable)
 import qualified Data.Foldable                   as F
+import           Data.Foldable.WithIndex         (FoldableWithIndex (..))
 import           Data.Functor.Apply              (Apply (..))
 import           Data.Functor.Bind               (Bind (..))
+import           Data.Functor.WithIndex          (FunctorWithIndex (..))
 import           Data.Hashable                   (Hashable (..))
 import           Data.List                       (nub, sortBy)
 import           Data.Maybe                      (fromMaybe)
 import           Data.Ord                        (comparing)
 import           Data.Semigroup                  (Semigroup (..))
+import           Data.Traversable.WithIndex      (TraversableWithIndex (..))
 import           Text.ParserCombinators.ReadPrec (prec)
 import           Text.Read
                  (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
 
 import Control.Lens
-       (At (..), FoldableWithIndex (..), FunctorWithIndex (..), Index, Iso,
-       IxValue, Ixed (..), TraversableWithIndex (..), Traversal, iso, (<&>),
-       _1, _2)
+       (At (..), Index, Iso, IxValue, Ixed (..), Traversal, _1, _2, iso, (<&>))
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
 import qualified Control.Lens as Lens
@@ -233,6 +234,18 @@ instance (Eq k, Hashable k, FromJSONKey k, FromJSON v) => FromJSON (InsOrdHashMa
     parseJSON = parseJSON1
 
 -------------------------------------------------------------------------------
+-- indexed-traversals
+-------------------------------------------------------------------------------
+
+instance (Eq k, Hashable k) => FunctorWithIndex k (InsOrdHashMap k) where
+    imap = mapWithKey
+instance (Eq k, Hashable k) => FoldableWithIndex k (InsOrdHashMap k) where
+    ifoldMap = foldMapWithKey
+    ifoldr   = foldrWithKey
+instance (Eq k, Hashable k) => TraversableWithIndex k (InsOrdHashMap k) where
+    itraverse = traverseWithKey
+
+-------------------------------------------------------------------------------
 -- Lens
 -------------------------------------------------------------------------------
 
@@ -262,19 +275,22 @@ instance (Eq k, Hashable k) => At (InsOrdHashMap k a) where
       where mv = lookup k m
     {-# INLINABLE at #-}
 
-instance (Eq k, Hashable k) => FunctorWithIndex k (InsOrdHashMap k) where
-    imap = mapWithKey
-instance (Eq k, Hashable k) => FoldableWithIndex k (InsOrdHashMap k) where
-    ifoldMap = foldMapWithKey
-instance (Eq k, Hashable k) => TraversableWithIndex k (InsOrdHashMap k) where
-    itraverse = traverseWithKey
-
 -- | This is a slight lie, as roundtrip doesn't preserve ordering.
 hashMap :: Iso (InsOrdHashMap k a) (InsOrdHashMap k b) (HashMap k a) (HashMap k b)
 hashMap = iso toHashMap fromHashMap
 
 unorderedTraversal :: Traversal (InsOrdHashMap k a) (InsOrdHashMap k b) a b
 unorderedTraversal = hashMap . traverse
+
+#if !MIN_VERSION_lens(5,0,0)
+instance (Eq k, Hashable k) => Lens.FunctorWithIndex k (InsOrdHashMap k) where
+    imap = mapWithKey
+instance (Eq k, Hashable k) => Lens.FoldableWithIndex k (InsOrdHashMap k) where
+    ifoldMap = foldMapWithKey
+    ifoldr   = foldrWithKey
+instance (Eq k, Hashable k) => Lens.TraversableWithIndex k (InsOrdHashMap k) where
+    itraverse = traverseWithKey
+#endif
 
 -------------------------------------------------------------------------------
 -- Optics
@@ -291,12 +307,15 @@ instance (Eq k, Hashable k) => Optics.At (InsOrdHashMap k a) where
     at k = Optics.lensVL $ \f m -> Lens.at k f m
     {-# INLINE at #-}
 
+#if !MIN_VERSION_optics_core(0,4,0)
 instance (Eq k, Hashable k) => Optics.FunctorWithIndex k (InsOrdHashMap k) where
     imap = mapWithKey
 instance (Eq k, Hashable k) => Optics.FoldableWithIndex k (InsOrdHashMap k) where
     ifoldMap = foldMapWithKey
+    ifoldr   = foldrWithKey
 instance (Eq k, Hashable k) => Optics.TraversableWithIndex k (InsOrdHashMap k) where
     itraverse = traverseWithKey
+#endif
 
 -------------------------------------------------------------------------------
 -- Construction
