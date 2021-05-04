@@ -47,6 +47,7 @@ import Prelude ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import Control.Arrow                   (first)
+import Control.DeepSeq                 (NFData, rnf)
 import Data.Aeson
 import Data.Data                       (Data, Typeable)
 import Data.Hashable                   (Hashable (..))
@@ -79,13 +80,16 @@ import Data.HashMap.InsOrd.Internal
 -- InsOrdHashSet
 -------------------------------------------------------------------------------
 
--- | 'HashSet' which tries it's best to remember insertion order of elements.
+-- | 'HashSet' which tries its best to remember insertion order of elements.
 
 data InsOrdHashSet k = InsOrdHashSet
     { _getIndex        :: !Int
     , getInsOrdHashSet :: !(HashMap k Int)
     }
     deriving (Typeable, Data)
+
+instance NFData k => NFData (InsOrdHashSet k) where
+    rnf (InsOrdHashSet index hs) = rnf index `seq` rnf hs
 
 instance Eq k => Eq (InsOrdHashSet k) where
     InsOrdHashSet _ a == InsOrdHashSet _ b = a == b

@@ -82,6 +82,7 @@ import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import           Control.Applicative             (Const (..))
 import           Control.Arrow                   (first, second)
+import           Control.DeepSeq                 (NFData, rnf)
 import           Data.Aeson
 import qualified Data.Aeson.Encoding             as E
 import           Data.Data                       (Data, Typeable)
@@ -122,6 +123,9 @@ import Data.HashMap.InsOrd.Internal
 data P a = P !Int !a
     deriving (Functor, Foldable, Traversable, Typeable, Data)
 
+instance NFData a => NFData (P a) where
+    rnf (P i a) = rnf i `seq` rnf a
+
 getPK :: P a -> Int
 getPK (P i _) = i
 {-# INLINABLE getPK #-}
@@ -147,13 +151,16 @@ instance Hashable a => Hashable (P a) where
 -- InsOrdHashMap
 -------------------------------------------------------------------------------
 
--- | 'HashMap' which tries it's best to remember insertion order of elements.
+-- | 'HashMap' which tries its best to remember insertion order of elements.
 
 data InsOrdHashMap k v = InsOrdHashMap
     { _getIndex        :: !Int
     , getInsOrdHashMap :: !(HashMap k (P v))
     }
     deriving (Functor, Typeable, Data)
+
+instance (NFData k, NFData v) => NFData (InsOrdHashMap k v) where
+    rnf (InsOrdHashMap index hm) = rnf index `seq` rnf hm
 
 instance (Eq k, Eq v) => Eq (InsOrdHashMap k v) where
     InsOrdHashMap _ a == InsOrdHashMap _ b = a == b
