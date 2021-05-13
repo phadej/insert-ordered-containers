@@ -47,7 +47,7 @@ import Prelude ()
 import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import Control.Arrow                   (first)
-import Control.DeepSeq                 (NFData, rnf)
+import Control.DeepSeq                 (NFData (..))
 import Data.Aeson
 import Data.Data                       (Data, Typeable)
 import Data.Hashable                   (Hashable (..))
@@ -74,6 +74,10 @@ import qualified Data.HashSet        as HashSet
 import qualified Data.Foldable
 import qualified GHC.Exts      as Exts
 
+#if MIN_VERSION_deepseq(1,4,3)
+import qualified Control.DeepSeq as NF
+#endif
+
 import Data.HashMap.InsOrd.Internal
 
 -------------------------------------------------------------------------------
@@ -88,8 +92,15 @@ data InsOrdHashSet k = InsOrdHashSet
     }
     deriving (Typeable, Data)
 
+-- | @since 0.2.5
 instance NFData k => NFData (InsOrdHashSet k) where
-    rnf (InsOrdHashSet index hs) = rnf index `seq` rnf hs
+    rnf (InsOrdHashSet _ hs) = rnf hs
+
+#if MIN_VERSION_deepseq(1,4,3)
+-- | @since 0.2.5
+instance NF.NFData1 InsOrdHashSet where
+    liftRnf rnf1 (InsOrdHashSet _ m) = NF.liftRnf2 rnf1 rnf m
+#endif
 
 instance Eq k => Eq (InsOrdHashSet k) where
     InsOrdHashSet _ a == InsOrdHashSet _ b = a == b

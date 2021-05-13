@@ -82,7 +82,7 @@ import Prelude.Compat hiding (filter, foldr, lookup, map, null)
 
 import           Control.Applicative             (Const (..))
 import           Control.Arrow                   (first, second)
-import           Control.DeepSeq                 (NFData, rnf)
+import           Control.DeepSeq                 (NFData (..))
 import           Data.Aeson
 import qualified Data.Aeson.Encoding             as E
 import           Data.Data                       (Data, Typeable)
@@ -114,6 +114,10 @@ import qualified Data.HashMap.Strict as HashMap
 
 import qualified GHC.Exts as Exts
 
+#if MIN_VERSION_deepseq(1,4,3)
+import qualified Control.DeepSeq as NF
+#endif
+
 import Data.HashMap.InsOrd.Internal
 
 -------------------------------------------------------------------------------
@@ -124,7 +128,13 @@ data P a = P !Int !a
     deriving (Functor, Foldable, Traversable, Typeable, Data)
 
 instance NFData a => NFData (P a) where
-    rnf (P i a) = rnf i `seq` rnf a
+    rnf (P _ a) = rnf a
+
+#if MIN_VERSION_deepseq(1,4,3)
+-- | @since 0.2.5
+instance NF.NFData1 P where
+    liftRnf rnf1 (P _ a) = rnf1 a
+#endif
 
 getPK :: P a -> Int
 getPK (P i _) = i
@@ -159,8 +169,19 @@ data InsOrdHashMap k v = InsOrdHashMap
     }
     deriving (Functor, Typeable, Data)
 
+-- | @since 0.2.5
 instance (NFData k, NFData v) => NFData (InsOrdHashMap k v) where
-    rnf (InsOrdHashMap index hm) = rnf index `seq` rnf hm
+    rnf (InsOrdHashMap _ hm) = rnf hm
+
+#if MIN_VERSION_deepseq(1,4,3)
+-- | @since 0.2.5
+instance NFData k => NF.NFData1 (InsOrdHashMap k) where
+    liftRnf rnf2 = NF.liftRnf2 rnf rnf2
+
+-- | @since 0.2.5
+instance NF.NFData2 InsOrdHashMap  where
+    liftRnf2 rnf1 rnf2 (InsOrdHashMap _ m) = NF.liftRnf2 rnf1 (NF.liftRnf rnf2) m
+#endif
 
 instance (Eq k, Eq v) => Eq (InsOrdHashMap k v) where
     InsOrdHashMap _ a == InsOrdHashMap _ b = a == b
