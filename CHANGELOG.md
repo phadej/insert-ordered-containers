@@ -1,3 +1,6 @@
+- 0.2.5
+    - Add `NFData(/1/2)` instances
+
 - 0.2.4
     - Add `indexed-traversable` instances
     - lens-5 and optics-0.4 support
