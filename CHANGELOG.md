@@ -1,3 +1,7 @@
+- 0.2.5.1
+    - Drop unnecessary dependencies `semigroups`, `base-compat`
+    - Update bounds
+
 - 0.2.5
     - Add `NFData(/1/2)` instances
 

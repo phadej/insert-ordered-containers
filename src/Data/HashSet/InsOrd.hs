@@ -43,8 +43,7 @@ module Data.HashSet.InsOrd (
     valid,
     )where
 
-import Prelude ()
-import Prelude.Compat hiding (filter, foldr, lookup, map, null)
+import Prelude hiding (filter, foldr, lookup, map, null)
 
 import Control.Arrow                   (first)
 import Control.DeepSeq                 (NFData (..))

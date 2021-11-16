@@ -77,8 +77,7 @@ module Data.HashMap.Strict.InsOrd (
     valid,
     ) where
 
-import Prelude ()
-import Prelude.Compat hiding (filter, foldr, lookup, map, null)
+import Prelude hiding (filter, foldr, lookup, map, null)
 
 import           Control.Applicative             (Const (..))
 import           Control.Arrow                   (first, second)

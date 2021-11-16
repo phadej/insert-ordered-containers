@@ -1,8 +1,7 @@
 {-# LANGUAGE GADTs #-}
 module Data.HashMap.InsOrd.Internal where
 
-import Prelude ()
-import Prelude.Compat hiding (filter, foldr, lookup, map, null)
+import Prelude hiding (filter, foldr, lookup, map, null)
 
 import Control.Applicative ((<**>))
 
