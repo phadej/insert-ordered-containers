@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE Trustworthy           #-}
 {-# LANGUAGE TypeFamilies          #-}
--- | 'InsOrdHashSet' is like 'HashMap', but it folds in insertion order.
+-- | 'InsOrdHashSet' is like 'HashSet', but it folds in insertion order.
 --
 -- This module interface mimics "Data.HashSet", with some additions.
 module Data.HashSet.InsOrd (
