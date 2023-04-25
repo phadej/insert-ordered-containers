@@ -1,3 +1,7 @@
+- 0.2.5.2
+    - Actually drop `semigroups` dependency
+    - Update bounds
+
 - 0.2.5.1
     - Drop unnecessary dependencies `semigroups`, `base-compat`
     - Update bounds
