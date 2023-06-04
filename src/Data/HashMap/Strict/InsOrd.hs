@@ -77,7 +77,11 @@ module Data.HashMap.Strict.InsOrd (
     valid,
     ) where
 
-import Prelude hiding (filter, foldr, lookup, map, null)
+import Prelude
+        ( Bool, Int, Maybe(..), Eq, Foldable, Functor, Traversable, Applicative, Show
+        , (.), (==), (<), (>), (>=), (+), ($), (<$>), (&&), (||), (>>=)
+        , showsPrec, showParen, showString, foldMap, all, traverse, flip, fmap
+        , fst, snd, const, uncurry, otherwise, pure, return, maybe, id)
 
 import           Control.Applicative             (Const (..))
 import           Control.Arrow                   (first, second)
@@ -93,6 +97,7 @@ import           Data.Functor.WithIndex          (FunctorWithIndex (..))
 import           Data.Hashable                   (Hashable (..))
 import           Data.List                       (nub, sortBy)
 import           Data.Maybe                      (fromMaybe)
+import           Data.Monoid                     (Monoid, mempty, mappend)
 import           Data.Ord                        (comparing)
 import           Data.Semigroup                  (Semigroup (..))
 import           Data.Traversable.WithIndex      (TraversableWithIndex (..))
