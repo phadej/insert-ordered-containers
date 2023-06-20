@@ -240,13 +240,13 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
 -------------------------------------------------------------------------------
 
 instance (ToJSONKey k) => ToJSON1 (InsOrdHashMap k) where
-    liftToJSON t _ = case toJSONKey :: ToJSONKeyFunction k of
+    liftToJSON _ t _ = case toJSONKey :: ToJSONKeyFunction k of
       ToJSONKeyText f _ -> object . fmap (\(k, v) -> (f k, t v)) . toList
       ToJSONKeyValue f _ -> toJSON . fmap (\(k,v) -> toJSON (f k, t v)) . toList
 
-    liftToEncoding t _ = case toJSONKey :: ToJSONKeyFunction k of
+    liftToEncoding _ t _ = case toJSONKey :: ToJSONKeyFunction k of
       ToJSONKeyText _ f ->  E.dict f t foldrWithKey
-      ToJSONKeyValue _ f -> E.list (liftToEncoding2 f (E.list f) t (E.list t)) . toList
+      ToJSONKeyValue _ f -> E.list (liftToEncoding2 (const False) f (E.list f) (const False) t (E.list t)) . toList
 
 instance (ToJSONKey k, ToJSON v) => ToJSON (InsOrdHashMap k v) where
     toJSON = toJSON1
@@ -255,7 +255,7 @@ instance (ToJSONKey k, ToJSON v) => ToJSON (InsOrdHashMap k v) where
 -------------------------------------------------------------------------------
 
 instance (Eq k, Hashable k, FromJSONKey k) => FromJSON1 (InsOrdHashMap k) where
-    liftParseJSON p pl v = fromList . HashMap.toList <$> liftParseJSON p pl v
+    liftParseJSON o p pl v = fromList . HashMap.toList <$> liftParseJSON o p pl v
 
 instance (Eq k, Hashable k, FromJSONKey k, FromJSON v) => FromJSON (InsOrdHashMap k v) where
     parseJSON = parseJSON1
