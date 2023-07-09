@@ -78,40 +78,42 @@ module Data.HashMap.Strict.InsOrd (
     ) where
 
 import Prelude
-        ( Bool, Int, Maybe(..), Eq, Foldable, Functor, Traversable, Applicative, Show
-        , (.), (==), (<), (>), (>=), (+), ($), (<$>), (&&), (||), (>>=)
-        , showsPrec, showParen, showString, foldMap, all, traverse, flip, fmap
-        , fst, snd, const, uncurry, otherwise, pure, return, maybe, id)
+       (Bool (..), Eq, Functor, Int, Maybe (..), all, const, flip, fmap, fst,
+       id, maybe, otherwise, pure, return, snd, uncurry, ($), (&&), (+), (.),
+       (<$>), (<), (==), (>), (>=), (>>=), (||))
 
-import           Control.Applicative             (Const (..))
-import           Control.Arrow                   (first, second)
-import           Control.DeepSeq                 (NFData (..))
-import           Data.Aeson
-import qualified Data.Aeson.Encoding             as E
-import           Data.Data                       (Data, Typeable)
-import qualified Data.Foldable                   as F
-import           Data.Foldable.WithIndex         (FoldableWithIndex (..))
-import           Data.Functor.Apply              (Apply (..))
-import           Data.Functor.Bind               (Bind (..))
-import           Data.Functor.WithIndex          (FunctorWithIndex (..))
-import           Data.Hashable                   (Hashable (..))
-import           Data.List                       (nub, sortBy)
-import           Data.Maybe                      (fromMaybe)
-import           Data.Monoid                     (Monoid, mempty, mappend)
-import           Data.Ord                        (comparing)
-import           Data.Semigroup                  (Semigroup (..))
-import           Data.Traversable.WithIndex      (TraversableWithIndex (..))
-import           Text.ParserCombinators.ReadPrec (prec)
-import           Text.Read
-                 (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
+import Control.Applicative             (Applicative, Const (..))
+import Control.Arrow                   (first, second)
+import Control.DeepSeq                 (NFData (..))
+import Data.Data                       (Data, Typeable)
+import Data.Foldable                   (Foldable (foldMap))
+import Data.Foldable.WithIndex         (FoldableWithIndex (..))
+import Data.Functor.Apply              (Apply (..))
+import Data.Functor.Bind               (Bind (..))
+import Data.Functor.WithIndex          (FunctorWithIndex (..))
+import Data.Hashable                   (Hashable (..))
+import Data.List                       (nub, sortBy)
+import Data.Maybe                      (fromMaybe)
+import Data.Monoid                     (Monoid, mappend, mempty)
+import Data.Ord                        (comparing)
+import Data.Semigroup                  (Semigroup (..))
+import Data.Traversable                (Traversable (traverse))
+import Data.Traversable.WithIndex      (TraversableWithIndex (..))
+import Text.ParserCombinators.ReadPrec (prec)
+import Text.Read
+       (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
+import Text.Show                       (Show (..), showParen, showString)
 
 import Control.Lens
        (At (..), Index, Iso, IxValue, Ixed (..), Traversal, _1, _2, iso, (<&>))
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
-import qualified Control.Lens as Lens
-import qualified Optics.At    as Optics
-import qualified Optics.Core  as Optics
+import qualified Control.Lens        as Lens
+import qualified Data.Aeson          as A
+import qualified Data.Aeson.Encoding as E
+import qualified Data.Foldable       as F
+import qualified Optics.At           as Optics
+import qualified Optics.Core         as Optics
 
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
@@ -244,26 +246,42 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
 -- Aeson
 -------------------------------------------------------------------------------
 
-instance (ToJSONKey k) => ToJSON1 (InsOrdHashMap k) where
-    liftToJSON t _ = case toJSONKey :: ToJSONKeyFunction k of
-      ToJSONKeyText f _ -> object . fmap (\(k, v) -> (f k, t v)) . toList
-      ToJSONKeyValue f _ -> toJSON . fmap (\(k,v) -> toJSON (f k, t v)) . toList
+instance (A.ToJSONKey k) => A.ToJSON1 (InsOrdHashMap k) where
+#if MIN_VERSION_aeson(2,2,0)
+    liftToJSON _ t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
+      A.ToJSONKeyText f _ -> A.object . fmap (\(k, v) -> (f k, t v)) . toList
+      A.ToJSONKeyValue f _ -> A.toJSON . fmap (\(k,v) -> A.toJSON (f k, t v)) . toList
+#else
+    liftToJSON t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
+      A.ToJSONKeyText f _ -> A.object . fmap (\(k, v) -> (f k, t v)) . toList
+      A.ToJSONKeyValue f _ -> A.toJSON . fmap (\(k,v) -> A.toJSON (f k, t v)) . toList
+#endif
 
-    liftToEncoding t _ = case toJSONKey :: ToJSONKeyFunction k of
-      ToJSONKeyText _ f ->  E.dict f t foldrWithKey
-      ToJSONKeyValue _ f -> E.list (liftToEncoding2 f (E.list f) t (E.list t)) . toList
+#if MIN_VERSION_aeson(2,2,0)
+    liftToEncoding o t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
+      A.ToJSONKeyText _ f ->  E.dict f t foldrWithKey
+      A.ToJSONKeyValue _ f -> E.list (A.liftToEncoding2 (const False) f (E.list f) o t (E.list t)) . toList
+#else
+    liftToEncoding t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
+      A.ToJSONKeyText _ f ->  E.dict f t foldrWithKey
+      A.ToJSONKeyValue _ f -> E.list (A.liftToEncoding2 f (E.list f) t (E.list t)) . toList
+#endif
 
-instance (ToJSONKey k, ToJSON v) => ToJSON (InsOrdHashMap k v) where
-    toJSON = toJSON1
-    toEncoding = toEncoding1
+instance (A.ToJSONKey k, A.ToJSON v) => A.ToJSON (InsOrdHashMap k v) where
+    toJSON = A.toJSON1
+    toEncoding = A.toEncoding1
 
 -------------------------------------------------------------------------------
 
-instance (Eq k, Hashable k, FromJSONKey k) => FromJSON1 (InsOrdHashMap k) where
-    liftParseJSON p pl v = fromList . HashMap.toList <$> liftParseJSON p pl v
+instance (Eq k, Hashable k, A.FromJSONKey k) => A.FromJSON1 (InsOrdHashMap k) where
+#if MIN_VERSION_aeson(2,2,0)
+    liftParseJSON o p pl v = fromList . HashMap.toList <$> A.liftParseJSON o p pl v
+#else
+    liftParseJSON p pl v = fromList . HashMap.toList <$> A.liftParseJSON p pl v
+#endif
 
-instance (Eq k, Hashable k, FromJSONKey k, FromJSON v) => FromJSON (InsOrdHashMap k v) where
-    parseJSON = parseJSON1
+instance (Eq k, Hashable k, A.FromJSONKey k, A.FromJSON v) => A.FromJSON (InsOrdHashMap k v) where
+    parseJSON = A.parseJSON1
 
 -------------------------------------------------------------------------------
 -- indexed-traversals

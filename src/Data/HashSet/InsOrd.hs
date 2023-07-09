@@ -43,24 +43,31 @@ module Data.HashSet.InsOrd (
     valid,
     )where
 
-import Prelude hiding (filter, foldr, lookup, map, null)
+import Prelude
+       (Bool, Eq ((==)), Int, Maybe (..), const, flip, fmap, fst,
+       maybe, otherwise, return, snd, ($), (&&), (+), (.), (<$), (<$>), (<),
+       (>), (>=), (||))
 
 import Control.Arrow                   (first)
 import Control.DeepSeq                 (NFData (..))
-import Data.Aeson
 import Data.Data                       (Data, Typeable)
+import Data.Foldable                   (Foldable (foldMap), all)
 import Data.Hashable                   (Hashable (..))
 import Data.List                       (nub, sortBy)
+import Data.Monoid                     (Monoid (..))
 import Data.Ord                        (comparing)
 import Data.Semigroup                  (Semigroup (..))
+import Data.Traversable                (Traversable (traverse))
 import Text.ParserCombinators.ReadPrec (prec)
 import Text.Read
        (Lexeme (..), Read (..), lexP, parens, readListPrecDefault)
+import Text.Show                       (Show (..), showParen, showString)
 
 import Control.Lens
        (At (..), Contains (..), Index, Iso', IxValue, Ixed (..), iso, (<&>))
 import Control.Monad.Trans.State.Strict (State, runState, state)
 
+import qualified Data.Aeson as A
 import qualified Control.Lens as Lens
 import qualified Optics.At    as Optics
 import qualified Optics.Core  as Optics
@@ -146,12 +153,12 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashSet k) where
 -- Aeson
 -------------------------------------------------------------------------------
 
-instance ToJSON a => ToJSON (InsOrdHashSet a) where
-    toJSON     = toJSON . toList
-    toEncoding = toEncoding . toList
+instance A.ToJSON a => A.ToJSON (InsOrdHashSet a) where
+    toJSON     = A.toJSON . toList
+    toEncoding = A.toEncoding . toList
 
-instance (Eq a, Hashable a, FromJSON a) => FromJSON (InsOrdHashSet a) where
-    parseJSON v = fromList <$> parseJSON v
+instance (Eq a, Hashable a, A.FromJSON a) => A.FromJSON (InsOrdHashSet a) where
+    parseJSON v = fromList <$> A.parseJSON v
 
 -------------------------------------------------------------------------------
 -- Lens

@@ -1,3 +1,7 @@
+- 0.2.5.3
+    - Support `aeson-2.2`
+    - Make `Prelude` import explicit (safe guard against additions to `Prelude`).
+
 - 0.2.5.2
     - Actually drop `semigroups` dependency
     - Update bounds
