@@ -1,3 +1,6 @@
+- 0.2.6
+    - Support GHC-8.6.5...9.10.1
+
 - 0.2.5.3
     - Support `aeson-2.2`
     - Make `Prelude` import explicit (safe guard against additions to `Prelude`).
