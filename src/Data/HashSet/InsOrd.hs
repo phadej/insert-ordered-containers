@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -80,9 +79,7 @@ import qualified Data.HashSet        as HashSet
 import qualified Data.Foldable
 import qualified GHC.Exts      as Exts
 
-#if MIN_VERSION_deepseq(1,4,3)
 import qualified Control.DeepSeq as NF
-#endif
 
 import Data.HashMap.InsOrd.Internal
 
@@ -102,11 +99,9 @@ data InsOrdHashSet k = InsOrdHashSet
 instance NFData k => NFData (InsOrdHashSet k) where
     rnf (InsOrdHashSet _ hs) = rnf hs
 
-#if MIN_VERSION_deepseq(1,4,3)
 -- | @since 0.2.5
 instance NF.NFData1 InsOrdHashSet where
     liftRnf rnf1 (InsOrdHashSet _ m) = NF.liftRnf2 rnf1 rnf m
-#endif
 
 instance Eq k => Eq (InsOrdHashSet k) where
     InsOrdHashSet _ a == InsOrdHashSet _ b = a == b
@@ -197,11 +192,7 @@ type instance Optics.IxValue (InsOrdHashSet a) = ()
 instance (Eq k, Hashable k) => Optics.Ixed (InsOrdHashSet k) where
     ix k = Optics.atraversalVL $ \point f (InsOrdHashSet i m) ->
       InsOrdHashSet i <$>
-#if MIN_VERSION_optics_core(0,3,0)
           Optics.atraverseOf
-#else
-          Optics.toAtraversalVL
-#endif
           (Optics.ix k) point (\j -> j <$ f ()) m
     {-# INLINE ix #-}
 
@@ -312,11 +303,7 @@ fromHashSet = mk . flip runState 0 . traverse (const newInt') . HashSet.toMap wh
 
 toHashSet :: InsOrdHashSet k -> HashSet k
 toHashSet (InsOrdHashSet _ m) =
-#if MIN_VERSION_unordered_containers(0,2,10)
     HashMap.keysSet m
-#else
-    HashSet.fromMap (fmap (const ()) m)
-#endif
 
 -------------------------------------------------------------------------------
 -- Internal

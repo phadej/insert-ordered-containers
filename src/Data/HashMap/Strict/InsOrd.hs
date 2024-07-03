@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveFunctor         #-}
@@ -120,9 +119,7 @@ import qualified Data.HashMap.Strict as HashMap
 
 import qualified GHC.Exts as Exts
 
-#if MIN_VERSION_deepseq(1,4,3)
 import qualified Control.DeepSeq as NF
-#endif
 
 import Data.HashMap.InsOrd.Internal
 
@@ -136,11 +133,9 @@ data P a = P !Int !a
 instance NFData a => NFData (P a) where
     rnf (P _ a) = rnf a
 
-#if MIN_VERSION_deepseq(1,4,3)
 -- | @since 0.2.5
 instance NF.NFData1 P where
     liftRnf rnf1 (P _ a) = rnf1 a
-#endif
 
 getPK :: P a -> Int
 getPK (P i _) = i
@@ -179,7 +174,6 @@ data InsOrdHashMap k v = InsOrdHashMap
 instance (NFData k, NFData v) => NFData (InsOrdHashMap k v) where
     rnf (InsOrdHashMap _ hm) = rnf hm
 
-#if MIN_VERSION_deepseq(1,4,3)
 -- | @since 0.2.5
 instance NFData k => NF.NFData1 (InsOrdHashMap k) where
     liftRnf rnf2 = NF.liftRnf2 rnf rnf2
@@ -187,7 +181,6 @@ instance NFData k => NF.NFData1 (InsOrdHashMap k) where
 -- | @since 0.2.5
 instance NF.NFData2 InsOrdHashMap  where
     liftRnf2 rnf1 rnf2 (InsOrdHashMap _ m) = NF.liftRnf2 rnf1 (NF.liftRnf rnf2) m
-#endif
 
 instance (Eq k, Eq v) => Eq (InsOrdHashMap k v) where
     InsOrdHashMap _ a == InsOrdHashMap _ b = a == b
@@ -247,25 +240,13 @@ instance (Eq k, Hashable k) => Exts.IsList (InsOrdHashMap k v) where
 -------------------------------------------------------------------------------
 
 instance (A.ToJSONKey k) => A.ToJSON1 (InsOrdHashMap k) where
-#if MIN_VERSION_aeson(2,2,0)
     liftToJSON _ t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
       A.ToJSONKeyText f _ -> A.object . fmap (\(k, v) -> (f k, t v)) . toList
       A.ToJSONKeyValue f _ -> A.toJSON . fmap (\(k,v) -> A.toJSON (f k, t v)) . toList
-#else
-    liftToJSON t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
-      A.ToJSONKeyText f _ -> A.object . fmap (\(k, v) -> (f k, t v)) . toList
-      A.ToJSONKeyValue f _ -> A.toJSON . fmap (\(k,v) -> A.toJSON (f k, t v)) . toList
-#endif
 
-#if MIN_VERSION_aeson(2,2,0)
     liftToEncoding o t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
       A.ToJSONKeyText _ f ->  E.dict f t foldrWithKey
       A.ToJSONKeyValue _ f -> E.list (A.liftToEncoding2 (const False) f (E.list f) o t (E.list t)) . toList
-#else
-    liftToEncoding t _ = case A.toJSONKey :: A.ToJSONKeyFunction k of
-      A.ToJSONKeyText _ f ->  E.dict f t foldrWithKey
-      A.ToJSONKeyValue _ f -> E.list (A.liftToEncoding2 f (E.list f) t (E.list t)) . toList
-#endif
 
 instance (A.ToJSONKey k, A.ToJSON v) => A.ToJSON (InsOrdHashMap k v) where
     toJSON = A.toJSON1
@@ -274,11 +255,7 @@ instance (A.ToJSONKey k, A.ToJSON v) => A.ToJSON (InsOrdHashMap k v) where
 -------------------------------------------------------------------------------
 
 instance (Eq k, Hashable k, A.FromJSONKey k) => A.FromJSON1 (InsOrdHashMap k) where
-#if MIN_VERSION_aeson(2,2,0)
     liftParseJSON o p pl v = fromList . HashMap.toList <$> A.liftParseJSON o p pl v
-#else
-    liftParseJSON p pl v = fromList . HashMap.toList <$> A.liftParseJSON p pl v
-#endif
 
 instance (Eq k, Hashable k, A.FromJSONKey k, A.FromJSON v) => A.FromJSON (InsOrdHashMap k v) where
     parseJSON = A.parseJSON1
@@ -332,16 +309,6 @@ hashMap = iso toHashMap fromHashMap
 unorderedTraversal :: Traversal (InsOrdHashMap k a) (InsOrdHashMap k b) a b
 unorderedTraversal = hashMap . traverse
 
-#if !MIN_VERSION_lens(5,0,0)
-instance (Eq k, Hashable k) => Lens.FunctorWithIndex k (InsOrdHashMap k) where
-    imap = mapWithKey
-instance (Eq k, Hashable k) => Lens.FoldableWithIndex k (InsOrdHashMap k) where
-    ifoldMap = foldMapWithKey
-    ifoldr   = foldrWithKey
-instance (Eq k, Hashable k) => Lens.TraversableWithIndex k (InsOrdHashMap k) where
-    itraverse = traverseWithKey
-#endif
-
 -------------------------------------------------------------------------------
 -- Optics
 -------------------------------------------------------------------------------
@@ -356,16 +323,6 @@ instance (Eq k, Hashable k) => Optics.Ixed (InsOrdHashMap k v) where
 instance (Eq k, Hashable k) => Optics.At (InsOrdHashMap k a) where
     at k = Optics.lensVL $ \f m -> Lens.at k f m
     {-# INLINE at #-}
-
-#if !MIN_VERSION_optics_core(0,4,0)
-instance (Eq k, Hashable k) => Optics.FunctorWithIndex k (InsOrdHashMap k) where
-    imap = mapWithKey
-instance (Eq k, Hashable k) => Optics.FoldableWithIndex k (InsOrdHashMap k) where
-    ifoldMap = foldMapWithKey
-    ifoldr   = foldrWithKey
-instance (Eq k, Hashable k) => Optics.TraversableWithIndex k (InsOrdHashMap k) where
-    itraverse = traverseWithKey
-#endif
 
 -------------------------------------------------------------------------------
 -- Construction
